@@ -1,0 +1,2765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="STRATOX">
+    <meta name="theme-color" content="#0b1021">
+    <title>STRATOX — Rocket Builder & Launch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;1,700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --bg-dark: #090d1a;
+            --panel-bg: rgba(16, 23, 42, 0.86);
+            --panel-border: rgba(255, 255, 255, 0.14);
+            --accent: #ff5e3a;
+            --accent-glow: rgba(255, 94, 58, 0.45);
+            --cyan: #38bdf8;
+            --gold: #fbbf24;
+            --green: #34d399;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        input[type="text"] {
+            user-select: text;
+            -webkit-user-select: text;
+            touch-action: auto;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Chakra Petch', sans-serif;
+            letter-spacing: 0.04em;
+        }
+
+        #app {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+        }
+
+        /* Top HUD Bar */
+        .top-hud {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: calc(var(--safe-top) + 10px) calc(var(--safe-right) + 14px) 10px calc(var(--safe-left) + 14px);
+            pointer-events: none;
+        }
+
+        .hud-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+        }
+
+        .pill {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 999px;
+            padding: 6px 11px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        .rank-banner-pill {
+            position: absolute;
+            top: calc(var(--safe-top) + 54px);
+            left: calc(var(--safe-left) + 14px);
+            z-index: 8;
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            border-radius: 10px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            pointer-events: none;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.12s ease, background 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Flight Telemetry Overlay */
+        #flightHud {
+            position: absolute;
+            top: calc(var(--safe-top) + 58px);
+            left: calc(var(--safe-left) + 14px);
+            right: calc(var(--safe-right) + 14px);
+            z-index: 9;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+        }
+
+        .telemetry-box {
+            background: rgba(9, 13, 26, 0.72);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 10px 14px;
+            min-width: 118px;
+        }
+
+        .telemetry-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .telemetry-val {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-top: 2px;
+        }
+
+        .bar-wrap {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 99px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            border-radius: 99px;
+            transition: width 0.08s linear;
+        }
+
+        /* Weather & Zone Banner */
+        #zoneBanner {
+            position: absolute;
+            top: calc(var(--safe-top) + 135px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            z-index: 9;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--cyan);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            white-space: nowrap;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        #zoneBanner.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Hangar Bottom Dock */
+        #hangarUi {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            padding: 12px calc(var(--safe-right) + 14px) calc(var(--safe-bottom) + 14px) calc(var(--safe-left) + 14px);
+            background: linear-gradient(to top, rgba(9,13,26,0.97) 65%, rgba(9,13,26,0));
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .stats-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            padding: 8px 10px;
+            backdrop-filter: blur(12px);
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-title {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .stat-bar {
+            width: 85%;
+            height: 5px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 99px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .stat-bar > div {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .category-tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .cat-btn {
+            background: rgba(30, 41, 59, 0.75);
+            border: 1px solid var(--panel-border);
+            color: var(--text-muted);
+            padding: 8px 4px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .cat-btn.active {
+            background: rgba(56, 189, 248, 0.18);
+            border-color: var(--cyan);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        .parts-carousel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .part-card {
+            background: var(--panel-bg);
+            border: 1.5px solid var(--panel-border);
+            border-radius: 14px;
+            padding: 8px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: transform 0.12s, border-color 0.2s, background 0.2s;
+            position: relative;
+            min-height: 86px;
+        }
+
+        .part-card:active {
+            transform: scale(0.95);
+        }
+
+        .part-card.equipped {
+            border-color: var(--green);
+            background: rgba(52, 211, 153, 0.14);
+        }
+
+        .part-card.locked {
+            opacity: 0.85;
+        }
+
+        .part-name {
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.15;
+            margin-top: 4px;
+        }
+
+        .part-stat-mini {
+            font-size: 9px;
+            color: var(--cyan);
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .part-tag {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 99px;
+            margin-top: 4px;
+        }
+
+        .tag-equipped { background: rgba(52,211,153,0.25); color: var(--green); }
+        .tag-owned { background: rgba(255,255,255,0.12); color: #cbd5e1; }
+        .tag-price { background: rgba(251,191,36,0.2); color: var(--gold); }
+
+        .launch-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-launch {
+            flex: 1;
+            background: linear-gradient(135deg, #ff6b35 0%, #f72585 100%);
+            border: none;
+            border-radius: 16px;
+            padding: 15px 20px;
+            color: white;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            box-shadow: 0 8px 25px var(--accent-glow);
+            transition: transform 0.12s, filter 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-launch:active {
+            transform: scale(0.97);
+        }
+
+        /* Flight Controls (Steering & Boost) */
+        #flightControls {
+            position: absolute;
+            bottom: calc(var(--safe-bottom) + 18px);
+            left: calc(var(--safe-left) + 16px);
+            right: calc(var(--safe-right) + 16px);
+            z-index: 10;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .steer-group {
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .ctrl-btn {
+            width: 68px;
+            height: 68px;
+            border-radius: 22px;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(10px);
+            border: 1.5px solid rgba(255,255,255,0.2);
+            color: white;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+            transition: transform 0.08s, background 0.1s;
+        }
+
+        .ctrl-btn:active, .ctrl-btn.pressed {
+            transform: scale(0.91);
+            background: rgba(56, 189, 248, 0.35);
+            border-color: var(--cyan);
+        }
+
+        .boost-btn {
+            pointer-events: auto;
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fbbf24, #ea580c);
+            border: 2px solid rgba(255,255,255,0.4);
+            color: #fff;
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+            cursor: pointer;
+            transition: transform 0.08s, opacity 0.2s;
+        }
+
+        .boost-btn:active, .boost-btn.pressed {
+            transform: scale(0.9);
+        }
+
+        .boost-btn.depleted {
+            opacity: 0.38;
+            filter: grayscale(0.8);
+            box-shadow: none;
+        }
+
+        /* Modals (Summary, Saves, Info) */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: rgba(5, 8, 18, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 16px) 16px;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #11182c;
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 420px;
+            padding: 22px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.65);
+            animation: popIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.92) translateY(12px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .summary-tile {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .slot-card {
+            background: rgba(255,255,255,0.05);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 11px 13px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .slot-card.active-slot {
+            border-color: var(--cyan);
+            background: rgba(56, 189, 248, 0.12);
+        }
+
+        .new-player-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .name-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1.5px solid rgba(56, 189, 248, 0.4);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .name-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .lb-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 6px;
+        }
+
+        .lb-row.top-1 { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.45); }
+        .lb-row.top-2 { background: rgba(226, 232, 240, 0.1); border-color: rgba(226, 232, 240, 0.3); }
+        .lb-row.top-3 { background: rgba(217, 119, 6, 0.12); border-color: rgba(217, 119, 6, 0.35); }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+            border: none;
+            color: white;
+            border-radius: 14px;
+            padding: 13px 18px;
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-retry {
+            background: linear-gradient(135deg, #ff6b35 0%, #f72585 100%);
+            border: none;
+            color: white;
+            border-radius: 14px;
+            padding: 13px 18px;
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 6px 20px var(--accent-glow);
+            transition: transform 0.1s;
+        }
+
+        .btn-retry:active {
+            transform: scale(0.97);
+        }
+
+        .glide-badge {
+            display: none;
+            margin-top: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--cyan);
+            background: rgba(56, 189, 248, 0.16);
+            padding: 2px 7px;
+            border-radius: 6px;
+            letter-spacing: 0.05em;
+        }
+
+        #toast {
+            position: fixed;
+            top: calc(var(--safe-top) + 64px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-16px);
+            background: #1e293b;
+            border: 1px solid var(--cyan);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+
+        #toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (min-width: 768px) {
+            .ctrl-btn { width: 76px; height: 76px; }
+            .boost-btn { width: 92px; height: 92px; font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top Navigation & Currency HUD -->
+    <header class="top-hud">
+        <div class="hud-group">
+            <div class="pill">
+                <span style="color:var(--gold); font-size:14px;">✦</span>
+                <span id="coinDisplay">250</span>
+            </div>
+            <div class="pill" title="Best Altitude Record">
+                <span style="color:var(--cyan); font-size:13px;">▲</span>
+                <span id="bestDisplay">0 m</span>
+            </div>
+        </div>
+
+        <div class="hud-group">
+            <button class="icon-btn" id="btnWeatherPreview" title="Randomize Weather" aria-label="Weather">
+                <span id="weatherIconTop" style="font-size:16px;">☀️</span>
+            </button>
+            <button class="icon-btn" id="btnLeaderboard" title="Top 10 High Scores" aria-label="Leaderboard">
+                <span style="font-size:15px;">🏆</span>
+            </button>
+            <button class="icon-btn" id="btnAbortFlight" style="display:none; border-color:rgba(248,113,113,0.45); color:#fca5a5;" title="End Flight" aria-label="End Flight">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+            <button class="icon-btn" id="btnSaves" title="Players & Profiles" aria-label="Players">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </button>
+            <button class="icon-btn" id="btnMute" title="Toggle Audio" aria-label="Toggle Audio">
+                <svg id="iconSoundOn" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                <svg id="iconSoundOff" style="display:none;" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            </button>
+            <button class="icon-btn" id="btnUpdate" title="Check App Update" aria-label="Check Update">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Active Commander & Rank Badge in Hangar -->
+    <div class="rank-banner-pill" id="hangarRankPill">
+        <span id="hudPlayerName">Commander 1</span>
+        <span style="opacity:0.5;">•</span>
+        <span id="hudPlayerRank" style="color:#fff;">Pad Sweeper</span>
+    </div>
+
+    <!-- Active Flight Telemetry -->
+    <div id="flightHud">
+        <div class="telemetry-box">
+            <div class="telemetry-label">ALTITUDE</div>
+            <div class="telemetry-val" id="altVal">0 m</div>
+            <div style="font-size:11px; color:var(--cyan); margin-top:3px; font-weight:600;" id="speedVal">0 km/h</div>
+            <div class="glide-badge" id="glideBadge">COASTING TO APOGEE</div>
+        </div>
+
+        <div class="telemetry-box" style="min-width:136px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="telemetry-label">FUEL</span>
+                <span id="fuelPct" style="font-size:11px; font-weight:700; color:var(--gold);">100%</span>
+            </div>
+            <div class="bar-wrap"><div class="bar-fill" id="fuelBar" style="background:linear-gradient(90deg, #f59e0b, #fde047);"></div></div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                <span class="telemetry-label">HULL</span>
+                <span id="hullPct" style="font-size:11px; font-weight:700; color:var(--green);">100%</span>
+            </div>
+            <div class="bar-wrap"><div class="bar-fill" id="hullBar" style="background:linear-gradient(90deg, #10b981, #6ee7b7);"></div></div>
+        </div>
+    </div>
+
+    <!-- Dynamic Atmosphere / Weather Banner -->
+    <div id="zoneBanner">TROPOSPHERE • CLEAR SKIES</div>
+
+    <!-- Hangar Assembly Dock -->
+    <section id="hangarUi">
+        <div class="stats-strip">
+            <div class="stat-item">
+                <span class="stat-title">THRUST</span>
+                <div class="stat-bar"><div id="statThrust" style="width:40%; background:#ff5e3a;"></div></div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-title">AERO</span>
+                <div class="stat-bar"><div id="statAero" style="width:40%; background:#38bdf8;"></div></div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-title">FUEL</span>
+                <div class="stat-bar"><div id="statFuel" style="width:40%; background:#fbbf24;"></div></div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-title">CONTROL</span>
+                <div class="stat-bar"><div id="statControl" style="width:40%; background:#34d399;"></div></div>
+            </div>
+        </div>
+
+        <div class="category-tabs" id="catTabs">
+            <button class="cat-btn active" data-cat="nose"><span>▲</span>NOSE</button>
+            <button class="cat-btn" data-cat="hull"><span>▮</span>CORE</button>
+            <button class="cat-btn" data-cat="fins"><span>◢◣</span>FINS</button>
+            <button class="cat-btn" data-cat="engine"><span>🔥</span>ENGINE</button>
+        </div>
+
+        <div class="parts-carousel" id="partsGrid"></div>
+
+        <div class="launch-row">
+            <button class="btn-launch" id="btnLaunch">
+                <span>IGNITION</span>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </button>
+        </div>
+    </section>
+
+    <!-- In-Flight Touch & Keyboard Controls -->
+    <div id="flightControls">
+        <div class="steer-group">
+            <button class="ctrl-btn" id="btnLeft" aria-label="Steer Left">◀</button>
+            <button class="ctrl-btn" id="btnRight" aria-label="Steer Right">▶</button>
+        </div>
+        <button class="boost-btn" id="btnBoost" aria-label="Afterburner Boost">
+            <span style="font-size:18px;">⚡</span>
+            <span>BOOST</span>
+        </button>
+    </div>
+
+    <!-- Flight Summary Modal -->
+    <div class="modal-backdrop" id="summaryModal">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 class="font-display" style="margin:0; font-size:24px; color:#fff;" id="sumTitle">MISSION REPORT</h2>
+                <span id="newRecordBadge" style="display:none; background:var(--gold); color:#000; font-weight:800; font-size:11px; padding:3px 9px; border-radius:99px;">NEW RECORD!</span>
+            </div>
+            <p id="sumSubtitle" style="margin:4px 0 0; font-size:13px; color:var(--text-muted);">Apogee reached in the Stratosphere</p>
+
+            <div style="margin-top:12px; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.35); border-radius:12px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:10px; font-weight:800; color:var(--gold); letter-spacing:0.06em;">COMMANDER RANK</div>
+                    <div id="sumRankTitle" class="font-display" style="font-size:16px; font-weight:700; color:#fff;">Pad Sweeper</div>
+                </div>
+                <span id="rankUpTag" style="display:none; background:#34d399; color:#022c22; font-size:10px; font-weight:800; padding:3px 8px; border-radius:99px;">PROMOTED!</span>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-tile">
+                    <div class="telemetry-label">MAX ALTITUDE</div>
+                    <div class="telemetry-val" style="color:var(--cyan);" id="sumAlt">0 m</div>
+                </div>
+                <div class="summary-tile">
+                    <div class="telemetry-label">TOP SPEED</div>
+                    <div class="telemetry-val" style="color:#fff;" id="sumSpeed">0 km/h</div>
+                </div>
+                <div class="summary-tile">
+                    <div class="telemetry-label">RINGS & ORBS</div>
+                    <div class="telemetry-val" style="color:var(--green);" id="sumBonus">+0 ✦</div>
+                </div>
+                <div class="summary-tile">
+                    <div class="telemetry-label">TOTAL CREDITS</div>
+                    <div class="telemetry-val" style="color:var(--gold);" id="sumTotal">+0 ✦</div>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="btn-retry" id="btnQuickRetry">LAUNCH AGAIN ↻</button>
+                <button class="btn-primary" id="btnReturnHangar">UPGRADE IN HANGAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Players & Profiles Modal -->
+    <div class="modal-backdrop" id="savesModal">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h2 class="font-display" style="margin:0; font-size:21px;">COMMANDERS</h2>
+                <button class="btn-secondary" id="btnCloseSaves" style="padding:6px 12px;">✕</button>
+            </div>
+            <div class="new-player-box">
+                <input type="text" id="newPlayerNameInput" class="name-input" maxlength="18" placeholder="Enter commander name...">
+                <button class="btn-primary" id="btnCreatePlayer" style="width:auto; padding:10px 16px; font-size:14px;">+ NEW</button>
+            </div>
+            <div id="slotsContainer"></div>
+            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);">
+                <span id="versionLabel">STRATOX v1.2.1</span>
+                <span>Multi-Player Device Save</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Top 10 High Score Modal -->
+    <div class="modal-backdrop" id="leaderboardModal">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                    <h2 class="font-display" style="margin:0; font-size:21px; color:var(--gold);">TOP 10 HALL OF FAME</h2>
+                    <div style="font-size:11px; color:var(--text-muted);">All Commanders on This Device</div>
+                </div>
+                <button class="btn-secondary" id="btnCloseLeaderboard" style="padding:6px 12px;">✕</button>
+            </div>
+            <div id="leaderboardContainer"></div>
+        </div>
+    </div>
+
+    <div id="toast">Notification</div>
+</div>
+
+<script>
+/**
+ * STRATOX — Arcade 3D-Styled Rocket Builder & Atmospheric Ascent Game (v1.2.1)
+ * - Unlimited Custom-Named Commanders + Multi-Player Switching
+ * - Overall Device Top 10 High Score Hall of Fame
+ * - 30 Creative Aerospace & Cosmic Titles unlocked by Altitude
+ * - Dynamic Randomized Weather System (both pre-launch and mid-flight shifts)
+ */
+
+const APP_VERSION = '1.2.1';
+const STORAGE_KEY = 'stratox_save_v2';
+const LEGACY_STORAGE_KEY = 'stratox_save_v1';
+
+// ==========================================
+// 1. PROCEDURAL PWA HOME SCREEN ICON & META
+// ==========================================
+(function generateAppIcons() {
+    try {
+        const iconCanvas = document.createElement('canvas');
+        iconCanvas.width = 512;
+        iconCanvas.height = 512;
+        const ictx = iconCanvas.getContext('2d');
+
+        // Deep Space Gradient Background
+        const bg = ictx.createLinearGradient(0, 0, 512, 512);
+        bg.addColorStop(0, '#0f172a');
+        bg.addColorStop(0.55, '#1e1b4b');
+        bg.addColorStop(1, '#311042');
+        ictx.fillStyle = bg;
+        ictx.fillRect(0, 0, 512, 512);
+
+        // Glowing Horizon Arc
+        ictx.strokeStyle = '#38bdf8';
+        ictx.lineWidth = 10;
+        ictx.beginPath();
+        ictx.arc(256, 560, 290, Math.PI * 1.15, Math.PI * 1.85);
+        ictx.stroke();
+
+        // Stylized Rocket Emblem
+        ictx.save();
+        ictx.translate(256, 250);
+        ictx.rotate(-0.42);
+
+        // Flame
+        const flame = ictx.createLinearGradient(0, 65, 0, 165);
+        flame.addColorStop(0, '#ffffff');
+        flame.addColorStop(0.4, '#fbbf24');
+        flame.addColorStop(1, '#ff5e3a');
+        ictx.fillStyle = flame;
+        ictx.beginPath();
+        ictx.moveTo(-26, 65);
+        ictx.lineTo(0, 165);
+        ictx.lineTo(26, 65);
+        ictx.closePath();
+        ictx.fill();
+
+        // Fins
+        ictx.fillStyle = '#ff5e3a';
+        ictx.beginPath();
+        ictx.moveTo(-36, 15);
+        ictx.lineTo(-78, 72);
+        ictx.lineTo(-36, 65);
+        ictx.moveTo(36, 15);
+        ictx.lineTo(78, 72);
+        ictx.lineTo(36, 65);
+        ictx.fill();
+
+        // Hull
+        ictx.fillStyle = '#f8fafc';
+        ictx.beginPath();
+        ictx.roundRect(-36, -65, 72, 130, 12);
+        ictx.fill();
+
+        // Nose Cone
+        ictx.fillStyle = '#38bdf8';
+        ictx.beginPath();
+        ictx.moveTo(-36, -65);
+        ictx.quadraticCurveTo(0, -155, 0, -155);
+        ictx.quadraticCurveTo(36, -65, 36, -65);
+        ictx.closePath();
+        ictx.fill();
+
+        // Porthole
+        ictx.fillStyle = '#0f172a';
+        ictx.beginPath();
+        ictx.arc(0, -15, 18, 0, Math.PI * 2);
+        ictx.fill();
+        ictx.fillStyle = '#38bdf8';
+        ictx.beginPath();
+        ictx.arc(0, -15, 12, 0, Math.PI * 2);
+        ictx.fill();
+
+        ictx.restore();
+
+        const dataUrl = iconCanvas.toDataURL('image/png');
+        const appleIcon = document.createElement('link');
+        appleIcon.rel = 'apple-touch-icon';
+        appleIcon.href = dataUrl;
+        document.head.appendChild(appleIcon);
+
+        const favIcon = document.createElement('link');
+        favIcon.rel = 'icon';
+        favIcon.type = 'image/png';
+        favIcon.href = dataUrl;
+        document.head.appendChild(favIcon);
+    } catch (e) {
+        console.warn('Icon generation skipped:', e);
+    }
+})();
+
+// ==========================================
+// 30 CREATIVE ALTITUDE RANKS & TITLES
+// ==========================================
+const ALTITUDE_TITLES = [
+    { minAlt: 0, title: 'Pad Sweeper' },
+    { minAlt: 150, title: 'Spark Igniter' },
+    { minAlt: 300, title: 'Bottle Rocketeer' },
+    { minAlt: 500, title: 'Cloud Skimmer' },
+    { minAlt: 750, title: 'Propellant Tinker' },
+    { minAlt: 1050, title: 'Troposphere Scout' },
+    { minAlt: 1400, title: 'Gale Piercer' },
+    { minAlt: 1800, title: 'Mach Chaser' },
+    { minAlt: 2250, title: 'Ozone Runner' },
+    { minAlt: 2750, title: 'Stratosphere Baron' },
+    { minAlt: 3300, title: 'Jetstream Corsair' },
+    { minAlt: 3900, title: 'Thermal Valkyrie' },
+    { minAlt: 4600, title: 'Mesosphere Warden' },
+    { minAlt: 5400, title: 'Noctilucent Knight' },
+    { minAlt: 6300, title: 'Meteor Dodger' },
+    { minAlt: 7300, title: 'Karman Line Pioneer' },
+    { minAlt: 8400, title: 'Ionosphere Drifter' },
+    { minAlt: 9600, title: 'Aurora Sovereign' },
+    { minAlt: 11000, title: 'Thermosphere Titan' },
+    { minAlt: 12500, title: 'Orbital Vanguard' },
+    { minAlt: 14200, title: 'Zero-G Centurion' },
+    { minAlt: 16000, title: 'Exosphere Phantom' },
+    { minAlt: 18000, title: 'Apogee Grand Marshal' },
+    { minAlt: 20500, title: 'Solar Flare Admiral' },
+    { minAlt: 23500, title: 'Celestial Architect' },
+    { minAlt: 27000, title: 'Void Navigator' },
+    { minAlt: 31000, title: 'Starforge Overlord' },
+    { minAlt: 36000, title: 'Nebula Conqueror' },
+    { minAlt: 42000, title: 'Galactic Ascendant' },
+    { minAlt: 50000, title: 'Supreme Eternal Star-Emperor' }
+];
+
+function getRankForAltitude(alt) {
+    let current = ALTITUDE_TITLES[0];
+    let rankIndex = 1;
+    for (let i = 0; i < ALTITUDE_TITLES.length; i++) {
+        if (alt >= ALTITUDE_TITLES[i].minAlt) {
+            current = ALTITUDE_TITLES[i];
+            rankIndex = i + 1;
+        } else {
+            break;
+        }
+    }
+    return { title: current.title, tier: rankIndex, totalTiers: ALTITUDE_TITLES.length };
+}
+
+// ==========================================
+// 2. WEB AUDIO SYNTHESIZER (iOS UNLOCKABLE)
+// ==========================================
+class SoundEngine {
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.thrusterGain = null;
+        this.thrusterFilter = null;
+        this.isThrusterRunning = false;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                this.ctx = new AudioCtx();
+                this.setupThrusterLoop();
+            }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    setupThrusterLoop() {
+        if (!this.ctx) return;
+        const bufferSize = this.ctx.sampleRate * 2;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            data[i] = (lastOut + (0.04 * white)) / 1.04;
+            lastOut = data[i];
+            data[i] *= 2.8;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+
+        this.thrusterFilter = this.ctx.createBiquadFilter();
+        this.thrusterFilter.type = 'lowpass';
+        this.thrusterFilter.frequency.value = 140;
+
+        this.thrusterGain = this.ctx.createGain();
+        this.thrusterGain.gain.value = 0;
+
+        noise.connect(this.thrusterFilter);
+        this.thrusterFilter.connect(this.thrusterGain);
+        this.thrusterGain.connect(this.ctx.destination);
+        noise.start(0);
+        this.isThrusterRunning = true;
+    }
+
+    setThruster(intensity, isBoost = false) {
+        if (!this.ctx || !this.thrusterGain) return;
+        const now = this.ctx.currentTime;
+        if (this.muted || intensity <= 0.01) {
+            this.thrusterGain.gain.setTargetAtTime(0, now, 0.08);
+            return;
+        }
+        const targetGain = Math.min(0.28, intensity * (isBoost ? 0.28 : 0.16));
+        const targetFreq = isBoost ? 460 : 150 + intensity * 160;
+        this.thrusterGain.gain.setTargetAtTime(targetGain, now, 0.06);
+        this.thrusterFilter.frequency.setTargetAtTime(targetFreq, now, 0.08);
+    }
+
+    playClick(pitch = 520) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(pitch, now);
+        osc.frequency.exponentialRampToValueAtTime(pitch * 1.4, now + 0.06);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.075);
+    }
+
+    playBuy() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const freqs = [523.25, 659.25, 783.99, 1046.5];
+        freqs.forEach((f, idx) => {
+            const now = this.ctx.currentTime + idx * 0.055;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(f, now);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.19);
+        });
+    }
+
+    playRing() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.22);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+    }
+
+    playHit() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(42, now + 0.24);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+    }
+}
+
+const sfx = new SoundEngine();
+
+// ==========================================
+// 3. ROCKET PARTS CATALOG & GAME BALANCE
+// ==========================================
+const PARTS_DB = {
+    nose: [
+        { id: 'nose_0', name: 'Blunt Cap', statText: '+25 AERO', cost: 0, aero: 25, mass: 10, hull: 110, color1: '#e2e8f0', color2: '#64748b', shape: 'blunt' },
+        { id: 'nose_1', name: 'Aero Cone', statText: '+55 AERO', cost: 90, aero: 55, mass: 9, hull: 105, color1: '#ff6b35', color2: '#9a3412', shape: 'cone' },
+        { id: 'nose_2', name: 'Needle Spike', statText: '+85 AERO', cost: 280, aero: 85, mass: 8, hull: 100, color1: '#38bdf8', color2: '#0369a1', shape: 'needle' },
+        { id: 'nose_3', name: 'Valkyrie Tip', statText: '+100 AERO', cost: 720, aero: 100, mass: 8, hull: 145, color1: '#fbbf24', color2: '#b45309', shape: 'valkyrie' }
+    ],
+    hull: [
+        { id: 'hull_0', name: 'Tin Tank', statText: '120 FUEL', cost: 0, fuel: 120, mass: 18, hull: 100, color1: '#f1f5f9', color2: '#94a3b8', stripe: '#ff5e3a' },
+        { id: 'hull_1', name: 'Cryo Cell', statText: '180 FUEL', cost: 110, fuel: 180, mass: 21, hull: 130, color1: '#e0f2fe', color2: '#7dd3fc', stripe: '#0284c7' },
+        { id: 'hull_2', name: 'Carbon Core', statText: '250 FUEL', cost: 340, fuel: 250, mass: 19, hull: 160, color1: '#334155', color2: '#0f172a', stripe: '#34d399' },
+        { id: 'hull_3', name: 'Helios Core', statText: '340 FUEL', cost: 820, fuel: 340, mass: 22, hull: 210, color1: '#fef3c7', color2: '#d97706', stripe: '#f43f5e' }
+    ],
+    fins: [
+        { id: 'fins_0', name: 'Stub Wings', statText: '+35 CTRL', cost: 0, control: 35, aero: 20, mass: 6, color1: '#ef4444', color2: '#7f1d1d', style: 'stub' },
+        { id: 'fins_1', name: 'Delta Swept', statText: '+62 CTRL', cost: 85, control: 62, aero: 50, mass: 7, color1: '#38bdf8', color2: '#1d4ed8', style: 'delta' },
+        { id: 'fins_2', name: 'Canard Fins', statText: '+88 CTRL', cost: 260, control: 88, aero: 75, mass: 6, color1: '#34d399', color2: '#065f46', style: 'canard' },
+        { id: 'fins_3', name: 'Aether Blades', statText: '+100 CTRL', cost: 640, control: 100, aero: 95, mass: 5, color1: '#c084fc', color2: '#581c87', style: 'blade' }
+    ],
+    engine: [
+        { id: 'eng_0', name: 'Spark-1', statText: '52 THRUST', cost: 0, thrust: 52, burnRate: 9.5, mass: 14, flame: '#ff7b00', nozzles: 1 },
+        { id: 'eng_1', name: 'Twin Viper', statText: '76 THRUST', cost: 130, thrust: 76, burnRate: 11.5, mass: 18, flame: '#38bdf8', nozzles: 2 },
+        { id: 'eng_2', name: 'Tri-Nova', statText: '102 THRUST', cost: 380, thrust: 102, burnRate: 13.5, mass: 21, flame: '#f43f5e', nozzles: 3 },
+        { id: 'eng_3', name: 'Singularity', statText: '135 THRUST', cost: 920, thrust: 135, burnRate: 15.0, mass: 20, flame: '#a855f7', nozzles: 1 }
+    ]
+};
+
+const WEATHER_TYPES = [
+    { id: 'clear', name: 'CLEAR SKIES', icon: '☀️', windBase: 3, dragMult: 1.0, visColor: 'rgba(255,255,255,0)' },
+    { id: 'breezy', name: 'JET STREAM WINDS', icon: '💨', windBase: 20, dragMult: 1.07, visColor: 'rgba(186,230,253,0.08)' },
+    { id: 'rain', name: 'MONSOON SQUALL', icon: '🌧️', windBase: 15, dragMult: 1.20, visColor: 'rgba(15,23,42,0.28)' },
+    { id: 'snow', name: 'ARCTIC BLIZZARD', icon: '❄️', windBase: 23, dragMult: 1.16, visColor: 'rgba(224,242,254,0.18)' },
+    { id: 'ion', name: 'SOLAR ION STORM', icon: '⚡', windBase: 26, dragMult: 1.12, visColor: 'rgba(168,85,247,0.14)' }
+];
+
+function pickRandomWeatherIndex(excludeIdx = -1) {
+    if (WEATHER_TYPES.length <= 1) return 0;
+    let next = Math.floor(Math.random() * WEATHER_TYPES.length);
+    if (next === excludeIdx) {
+        next = (next + 1 + Math.floor(Math.random() * (WEATHER_TYPES.length - 1))) % WEATHER_TYPES.length;
+    }
+    return next;
+}
+
+// ==========================================
+// 4. VERSIONED MULTI-PLAYER & TOP 10 MANAGER
+// ==========================================
+function createDefaultPlayer(name) {
+    return {
+        id: 'plr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        name: name.trim() || 'Commander 1',
+        coins: 250,
+        bestAltitude: 0,
+        launches: 0,
+        unlocked: ['nose_0', 'hull_0', 'fins_0', 'eng_0'],
+        equipped: {
+            nose: 'nose_0',
+            hull: 'hull_0',
+            fins: 'fins_0',
+            engine: 'eng_0'
+        },
+        updatedAt: Date.now()
+    };
+}
+
+let saveState = {
+    version: APP_VERSION,
+    activePlayerId: null,
+    muted: false,
+    players: [],
+    highScores: [] // Global Top 10 runs across all players on device
+};
+
+function loadSaveData() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.players) && parsed.players.length > 0) {
+                saveState.activePlayerId = parsed.activePlayerId || parsed.players[0].id;
+                saveState.muted = !!parsed.muted;
+                saveState.players = parsed.players.map((p, idx) => ({
+                    ...createDefaultPlayer(`Commander ${idx + 1}`),
+                    ...p
+                }));
+                saveState.highScores = Array.isArray(parsed.highScores) ? parsed.highScores.slice(0, 10) : [];
+                saveState.version = APP_VERSION;
+            }
+        } else {
+            // Migrate legacy v1 slots if present
+            const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (legacyRaw) {
+                const leg = JSON.parse(legacyRaw);
+                if (leg && Array.isArray(leg.slots)) {
+                    leg.slots.forEach((s, i) => {
+                        if (s && (s.launches > 0 || s.coins !== 250 || i === 0)) {
+                            const migrated = { ...createDefaultPlayer(s.name || `Commander ${i + 1}`), ...s };
+                            saveState.players.push(migrated);
+                            if (s.bestAltitude > 0) {
+                                saveState.highScores.push({
+                                    playerName: migrated.name,
+                                    altitude: Math.floor(s.bestAltitude),
+                                    rankTitle: getRankForAltitude(s.bestAltitude).title,
+                                    weatherIcon: '☀️',
+                                    date: Date.now()
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Save load fallback:', e);
+    }
+
+    if (saveState.players.length === 0) {
+        const first = createDefaultPlayer('Commander 1');
+        saveState.players.push(first);
+        saveState.activePlayerId = first.id;
+    }
+    if (!saveState.players.some(p => p.id === saveState.activePlayerId)) {
+        saveState.activePlayerId = saveState.players[0].id;
+    }
+
+    saveState.highScores.sort((a, b) => b.altitude - a.altitude);
+    saveState.highScores = saveState.highScores.slice(0, 10);
+
+    sfx.muted = saveState.muted;
+    updateMuteIcon();
+}
+
+function persistSaveData() {
+    try {
+        currentProfile().updatedAt = Date.now();
+        saveState.version = APP_VERSION;
+        saveState.muted = sfx.muted;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saveState));
+    } catch (e) {
+        console.warn('Save persist error:', e);
+    }
+}
+
+function currentProfile() {
+    return saveState.players.find(p => p.id === saveState.activePlayerId) || saveState.players[0];
+}
+
+function recordHighScore(playerName, altitude, weatherIcon) {
+    const cleanAlt = Math.floor(altitude);
+    if (cleanAlt <= 0) return;
+    const rankObj = getRankForAltitude(cleanAlt);
+    saveState.highScores.push({
+        playerName,
+        altitude: cleanAlt,
+        rankTitle: rankObj.title,
+        weatherIcon,
+        date: Date.now()
+    });
+    saveState.highScores.sort((a, b) => b.altitude - a.altitude);
+    saveState.highScores = saveState.highScores.slice(0, 10);
+}
+
+// ==========================================
+// 5. GAME STATE & PHYSICS ENGINE
+// ==========================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+function resizeCanvas() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const GAME = {
+    mode: 'HANGAR', // HANGAR | COUNTDOWN | FLIGHT | SUMMARY
+    selectedCat: 'nose',
+    weatherIdx: 0,
+    countdownTimer: 0,
+    cameraY: 0,
+    shake: 0,
+    time: 0,
+    lastZone: '',
+    rocket: {
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        angle: 0,
+        angVel: 0,
+        fuel: 100,
+        maxFuel: 100,
+        hull: 100,
+        maxHull: 100,
+        maxAlt: 0,
+        maxSpeed: 0,
+        bonusCoins: 0,
+        boostEnergy: 100,
+        isBoosting: false,
+        stats: null
+    },
+    input: {
+        left: false,
+        right: false,
+        boost: false
+    },
+    particles: [],
+    weatherParticles: [],
+    worldObjects: [],
+    stars: []
+};
+
+// Generate persistent starfield
+for (let i = 0; i < 110; i++) {
+    GAME.stars.push({
+        x: Math.random(),
+        y: Math.random(),
+        size: Math.random() * 2 + 0.6,
+        twinkle: Math.random() * Math.PI * 2
+    });
+}
+
+function computeRocketStats() {
+    const prof = currentProfile();
+    const nose = PARTS_DB.nose.find(p => p.id === prof.equipped.nose) || PARTS_DB.nose[0];
+    const hull = PARTS_DB.hull.find(p => p.id === prof.equipped.hull) || PARTS_DB.hull[0];
+    const fins = PARTS_DB.fins.find(p => p.id === prof.equipped.fins) || PARTS_DB.fins[0];
+    const engine = PARTS_DB.engine.find(p => p.id === prof.equipped.engine) || PARTS_DB.engine[0];
+
+    const totalMass = nose.mass + hull.mass + fins.mass + engine.mass;
+    const aeroScore = Math.min(100, Math.round(nose.aero * 0.65 + fins.aero * 0.35));
+    const thrustScore = Math.min(100, Math.round((engine.thrust / 135) * 100));
+    const fuelScore = Math.min(100, Math.round((hull.fuel / 340) * 100));
+    const controlScore = fins.control;
+    const maxHull = Math.round((nose.hull + hull.hull) * 0.5);
+
+    return {
+        nose, hull, fins, engine,
+        totalMass,
+        aeroScore,
+        thrustScore,
+        fuelScore,
+        controlScore,
+        maxFuel: hull.fuel,
+        maxHull
+    };
+}
+
+// ==========================================
+// 6. UI RENDERING & INTERACTIONS
+// ==========================================
+const elCoin = document.getElementById('coinDisplay');
+const elBest = document.getElementById('bestDisplay');
+const elPartsGrid = document.getElementById('partsGrid');
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('visible'), 2200);
+}
+
+function updateTopHud() {
+    const prof = currentProfile();
+    elCoin.textContent = prof.coins.toLocaleString();
+    elBest.textContent = `${Math.floor(prof.bestAltitude).toLocaleString()} m`;
+    const w = WEATHER_TYPES[GAME.weatherIdx];
+    document.getElementById('weatherIconTop').textContent = w.icon;
+
+    const rankInfo = getRankForAltitude(prof.bestAltitude);
+    document.getElementById('hudPlayerName').textContent = prof.name;
+    document.getElementById('hudPlayerRank').textContent = `${rankInfo.title} (${rankInfo.tier}/${rankInfo.totalTiers})`;
+}
+
+function updateStatsBars() {
+    const s = computeRocketStats();
+    document.getElementById('statThrust').style.width = `${s.thrustScore}%`;
+    document.getElementById('statAero').style.width = `${s.aeroScore}%`;
+    document.getElementById('statFuel').style.width = `${s.fuelScore}%`;
+    document.getElementById('statControl').style.width = `${s.controlScore}%`;
+}
+
+function renderPartsCarousel() {
+    const prof = currentProfile();
+    const list = PARTS_DB[GAME.selectedCat];
+    elPartsGrid.innerHTML = '';
+
+    list.forEach(part => {
+        const isEquipped = prof.equipped[GAME.selectedCat] === part.id;
+        const isOwned = prof.unlocked.includes(part.id);
+
+        const card = document.createElement('div');
+        card.className = `part-card ${isEquipped ? 'equipped' : ''} ${!isOwned ? 'locked' : ''}`;
+
+        // Mini SVG preview icon for part
+        const badgeColor = part.color1 || part.flame || '#38bdf8';
+        let tagHtml = '';
+        if (isEquipped) {
+            tagHtml = `<span class="part-tag tag-equipped">ACTIVE</span>`;
+        } else if (isOwned) {
+            tagHtml = `<span class="part-tag tag-owned">EQUIP</span>`;
+        } else {
+            tagHtml = `<span class="part-tag tag-price">✦ ${part.cost}</span>`;
+        }
+
+        card.innerHTML = `
+            <div style="width:24px; height:24px; border-radius:8px; background:${badgeColor}; box-shadow: 0 0 10px ${badgeColor}66; border:1.5px solid rgba(255,255,255,0.4);"></div>
+            <div class="part-name">${part.name}</div>
+            <div class="part-stat-mini">${part.statText}</div>
+            ${tagHtml}
+        `;
+
+        card.addEventListener('click', () => {
+            sfx.init();
+            if (isEquipped) {
+                sfx.playClick(420);
+                return;
+            }
+            if (isOwned) {
+                prof.equipped[GAME.selectedCat] = part.id;
+                sfx.playClick(620);
+                persistSaveData();
+                renderPartsCarousel();
+                updateStatsBars();
+            } else {
+                if (prof.coins >= part.cost) {
+                    prof.coins -= part.cost;
+                    prof.unlocked.push(part.id);
+                    prof.equipped[GAME.selectedCat] = part.id;
+                    sfx.playBuy();
+                    persistSaveData();
+                    updateTopHud();
+                    renderPartsCarousel();
+                    updateStatsBars();
+                    showToast(`Unlocked ${part.name}!`);
+                } else {
+                    sfx.playHit();
+                    showToast(`Need ${part.cost - prof.coins} more credits`);
+                }
+            }
+        });
+
+        elPartsGrid.appendChild(card);
+    });
+}
+
+// Category tab buttons
+document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        sfx.init();
+        sfx.playClick(480);
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        GAME.selectedCat = btn.dataset.cat;
+        renderPartsCarousel();
+    });
+});
+
+// Weather Forecast Randomizer Button in Hangar
+document.getElementById('btnWeatherPreview').addEventListener('click', () => {
+    sfx.init();
+    sfx.playClick(540);
+    if (GAME.mode === 'HANGAR') {
+        GAME.weatherIdx = pickRandomWeatherIndex(GAME.weatherIdx);
+        initWeatherParticles();
+        updateTopHud();
+        const w = WEATHER_TYPES[GAME.weatherIdx];
+        showToast(`Weather Shift: ${w.icon} ${w.name}`);
+    } else {
+        const w = WEATHER_TYPES[GAME.weatherIdx];
+        showToast(`Active Weather: ${w.icon} ${w.name}`);
+    }
+});
+
+// ==========================================
+// 7. LAUNCH SEQUENCE & WORLD SPAWNING
+// ==========================================
+function initWeatherParticles() {
+    GAME.weatherParticles = [];
+    const w = WEATHER_TYPES[GAME.weatherIdx];
+    const count = w.id === 'clear' ? 12 : 65;
+    for (let i = 0; i < count; i++) {
+        GAME.weatherParticles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            speed: 4 + Math.random() * 8,
+            size: w.id === 'snow' ? (2 + Math.random() * 3) : (1.5 + Math.random() * 1.5),
+            drift: (Math.random() - 0.5) * 2
+        });
+    }
+}
+
+function spawnWorldAhead(currentAlt) {
+    // Keep objects populated up to currentAlt + 2500m
+    const targetMax = currentAlt + 2500;
+    let highestSpawned = GAME.worldObjects.reduce((max, o) => Math.max(max, o.alt), Math.max(120, currentAlt));
+
+    while (highestSpawned < targetMax) {
+        highestSpawned += 130 + Math.random() * 140;
+        const alt = highestSpawned;
+        const laneX = (Math.random() - 0.5) * Math.min(width * 0.78, 460);
+
+        const roll = Math.random();
+        if (roll < 0.36) {
+            // Thermal Boost Ring (Speed + Coins)
+            GAME.worldObjects.push({
+                type: 'ring',
+                alt,
+                x: laneX,
+                radius: 34,
+                collected: false,
+                pulse: Math.random() * 6
+            });
+        } else if (roll < 0.54) {
+            // Floating Fuel Cell
+            GAME.worldObjects.push({
+                type: 'fuel',
+                alt,
+                x: laneX,
+                radius: 22,
+                collected: false,
+                pulse: Math.random() * 6
+            });
+        } else {
+            // Altitude-specific Hazard
+            if (alt < 2500) {
+                GAME.worldObjects.push({
+                    type: 'storm',
+                    alt,
+                    x: laneX,
+                    radius: 38,
+                    vx: (Math.random() - 0.5) * 1.4,
+                    hit: false
+                });
+            } else if (alt < 7000) {
+                GAME.worldObjects.push({
+                    type: 'drone',
+                    alt,
+                    x: laneX,
+                    radius: 26,
+                    vx: (Math.random() < 0.5 ? -1 : 1) * (1.8 + Math.random() * 1.5),
+                    hit: false
+                });
+            } else {
+                GAME.worldObjects.push({
+                    type: 'meteor',
+                    alt,
+                    x: laneX,
+                    radius: 30,
+                    vx: (Math.random() - 0.5) * 2.5,
+                    rot: Math.random() * Math.PI,
+                    hit: false
+                });
+            }
+        }
+    }
+}
+
+function startLaunch() {
+    sfx.init();
+    sfx.playBuy();
+
+    const stats = computeRocketStats();
+    GAME.mode = 'FLIGHT';
+    GAME.lastZone = '';
+    GAME.nextWeatherShiftAlt = 1400 + Math.random() * 1400;
+    GAME.particles = [];
+    GAME.worldObjects = [];
+    GAME.cameraY = 0;
+    GAME.shake = 10;
+
+    GAME.rocket = {
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 18, // Crisp launch pad booster kick
+        angle: 0,
+        angVel: 0,
+        fuel: stats.maxFuel,
+        maxFuel: stats.maxFuel,
+        hull: stats.maxHull,
+        maxHull: stats.maxHull,
+        maxAlt: 0,
+        maxSpeed: 0,
+        bonusCoins: 0,
+        boostEnergy: 100,
+        isBoosting: false,
+        flightTime: 0,
+        stats
+    };
+
+    spawnWorldAhead(0);
+
+    document.getElementById('summaryModal').classList.remove('open');
+    document.getElementById('hangarUi').style.display = 'none';
+    document.getElementById('hangarRankPill').style.display = 'none';
+    document.getElementById('btnSaves').style.display = 'none';
+    document.getElementById('btnLeaderboard').style.display = 'none';
+    document.getElementById('btnAbortFlight').style.display = 'flex';
+    document.getElementById('flightHud').style.display = 'flex';
+    document.getElementById('flightControls').style.display = 'flex';
+    document.getElementById('glideBadge').style.display = 'none';
+    const w = WEATHER_TYPES[GAME.weatherIdx];
+    triggerBanner(`IGNITION • ${w.icon} ${w.name}`);
+}
+
+document.getElementById('btnLaunch').addEventListener('click', startLaunch);
+document.getElementById('btnQuickRetry').addEventListener('click', startLaunch);
+document.getElementById('btnAbortFlight').addEventListener('click', () => {
+    if (GAME.mode === 'FLIGHT') {
+        sfx.playClick(380);
+        endFlight('ABORT');
+    }
+});
+
+function triggerBanner(text) {
+    const b = document.getElementById('zoneBanner');
+    b.textContent = text;
+    b.classList.add('show');
+    clearTimeout(b._timer);
+    b._timer = setTimeout(() => b.classList.remove('show'), 2600);
+}
+
+function endFlight(reason) {
+    if (GAME.mode !== 'FLIGHT') return;
+    GAME.mode = 'SUMMARY';
+    sfx.setThruster(0);
+
+    const r = GAME.rocket;
+    const prof = currentProfile();
+    const altScore = Math.floor(r.maxAlt);
+    const oldRank = getRankForAltitude(prof.bestAltitude);
+    const runWeatherIcon = WEATHER_TYPES[GAME.weatherIdx].icon;
+
+    // Generous reward scaling so even early launches fund upgrades quickly
+    const altCoins = Math.max(15, Math.floor(altScore * 0.12));
+    const totalEarned = altCoins + r.bonusCoins;
+
+    const isRecord = altScore > prof.bestAltitude;
+    if (isRecord) prof.bestAltitude = altScore;
+    prof.coins += totalEarned;
+    prof.launches += 1;
+
+    recordHighScore(prof.name, altScore, runWeatherIcon);
+
+    const newBestRank = getRankForAltitude(prof.bestAltitude);
+    const promoted = newBestRank.tier > oldRank.tier;
+
+    // Randomize weather for the next launch
+    GAME.weatherIdx = pickRandomWeatherIndex(GAME.weatherIdx);
+    initWeatherParticles();
+
+    persistSaveData();
+    updateTopHud();
+
+    document.getElementById('flightHud').style.display = 'none';
+    document.getElementById('flightControls').style.display = 'none';
+    document.getElementById('btnAbortFlight').style.display = 'none';
+    document.getElementById('btnSaves').style.display = 'flex';
+    document.getElementById('btnLeaderboard').style.display = 'flex';
+    document.getElementById('zoneBanner').classList.remove('show');
+
+    document.getElementById('sumTitle').textContent = reason === 'HULL' ? 'HULL BREACHED' : 'APOGEE REACHED';
+    document.getElementById('sumSubtitle').textContent = `${prof.name} • ${getAtmosphereZone(altScore)}`;
+    document.getElementById('newRecordBadge').style.display = isRecord ? 'inline-block' : 'none';
+    document.getElementById('sumRankTitle').textContent = `${newBestRank.title} (${newBestRank.tier}/${newBestRank.totalTiers})`;
+    document.getElementById('rankUpTag').style.display = promoted ? 'inline-block' : 'none';
+    document.getElementById('sumAlt').textContent = `${altScore.toLocaleString()} m`;
+    document.getElementById('sumSpeed').textContent = `${Math.round(r.maxSpeed * 32)} km/h`;
+    document.getElementById('sumBonus').textContent = `+${r.bonusCoins} ✦`;
+    document.getElementById('sumTotal').textContent = `+${totalEarned} ✦`;
+
+    document.getElementById('summaryModal').classList.add('open');
+}
+
+document.getElementById('btnReturnHangar').addEventListener('click', () => {
+    sfx.init();
+    sfx.playClick(520);
+    document.getElementById('summaryModal').classList.remove('open');
+    GAME.mode = 'HANGAR';
+    GAME.cameraY = 0;
+    document.getElementById('hangarUi').style.display = 'flex';
+    document.getElementById('hangarRankPill').style.display = 'flex';
+    renderPartsCarousel();
+    updateStatsBars();
+});
+
+// ==========================================
+// 8. INPUT HANDLING (TOUCH, DRAG & KEYBOARD)
+// ==========================================
+function bindHoldButton(el, prop) {
+    const start = (e) => {
+        e.preventDefault();
+        sfx.init();
+        GAME.input[prop] = true;
+        el.classList.add('pressed');
+    };
+    const end = (e) => {
+        e.preventDefault();
+        GAME.input[prop] = false;
+        el.classList.remove('pressed');
+    };
+    el.addEventListener('touchstart', start, { passive: false });
+    el.addEventListener('touchend', end, { passive: false });
+    el.addEventListener('touchcancel', end, { passive: false });
+    el.addEventListener('mousedown', start);
+    window.addEventListener('mouseup', end);
+}
+
+bindHoldButton(document.getElementById('btnLeft'), 'left');
+bindHoldButton(document.getElementById('btnRight'), 'right');
+bindHoldButton(document.getElementById('btnBoost'), 'boost');
+
+// Direct Canvas Touch-Drag Steering for intuitive one-handed mobile play
+let touchSteerStartX = null;
+canvas.addEventListener('touchstart', (e) => {
+    if (GAME.mode !== 'FLIGHT') return;
+    sfx.init();
+    if (e.touches.length > 0) {
+        touchSteerStartX = e.touches[0].clientX;
+    }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+    if (GAME.mode !== 'FLIGHT' || touchSteerStartX === null) return;
+    const dx = e.touches[0].clientX - touchSteerStartX;
+    GAME.input.left = dx < -14;
+    GAME.input.right = dx > 14;
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => {
+    touchSteerStartX = null;
+    GAME.input.left = false;
+    GAME.input.right = false;
+}, { passive: true });
+
+window.addEventListener('keydown', (e) => {
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') GAME.input.left = true;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') GAME.input.right = true;
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        if (GAME.mode === 'HANGAR' && e.code === 'Space') startLaunch();
+        else GAME.input.boost = true;
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') GAME.input.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') GAME.input.right = false;
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') GAME.input.boost = false;
+});
+
+// ==========================================
+// 9. ATMOSPHERE ZONES & SIMULATION STEP
+// ==========================================
+function getAtmosphereZone(alt) {
+    if (alt < 1200) return 'TROPOSPHERE';
+    if (alt < 3200) return 'STRATOSPHERE';
+    if (alt < 6500) return 'MESOSPHERE';
+    if (alt < 11000) return 'THERMOSPHERE';
+    return 'DEEP ORBIT';
+}
+
+function updateSimulation(dt) {
+    GAME.time += dt;
+
+    // Update ambient weather particles
+    const w = WEATHER_TYPES[GAME.weatherIdx];
+    const altFactor = GAME.mode === 'FLIGHT' ? Math.max(0, 1 - GAME.rocket.y / 3500) : 1;
+    GAME.weatherParticles.forEach(p => {
+        p.y += (p.speed + (GAME.mode === 'FLIGHT' ? GAME.rocket.vy * 0.35 : 0)) * (w.id === 'clear' ? 0.3 : 1.4);
+        p.x += (w.windBase * 0.14 + p.drift) * altFactor;
+        if (p.y > height) { p.y = -10; p.x = Math.random() * width; }
+        if (p.x > width) p.x = 0;
+        if (p.x < 0) p.x = width;
+    });
+
+    if (GAME.shake > 0) {
+        GAME.shake = Math.max(0, GAME.shake - dt * 28);
+    }
+
+    if (GAME.mode !== 'FLIGHT') return;
+
+    const r = GAME.rocket;
+    const s = r.stats;
+    r.flightTime += dt;
+    const airDensity = Math.max(0.08, Math.exp(-r.y / 4500));
+
+    // Check Atmosphere Zone transition & Mid-Flight Random Weather Fronts
+    const currentZone = getAtmosphereZone(r.y);
+    if (currentZone !== GAME.lastZone) {
+        GAME.lastZone = currentZone;
+        triggerBanner(`${currentZone} • ${w.icon} ${w.name}`);
+    } else if (r.y > GAME.nextWeatherShiftAlt) {
+        GAME.nextWeatherShiftAlt += 1800 + Math.random() * 1800;
+        GAME.weatherIdx = pickRandomWeatherIndex(GAME.weatherIdx);
+        initWeatherParticles();
+        updateTopHud();
+        const nw = WEATHER_TYPES[GAME.weatherIdx];
+        triggerBanner(`WEATHER FRONT: ${nw.icon} ${nw.name}`);
+    }
+
+    // Steering & Fin Stability
+    const steerPower = (0.045 + (s.controlScore / 100) * 0.055);
+    if (GAME.input.left) r.angVel -= steerPower * dt * 60;
+    if (GAME.input.right) r.angVel += steerPower * dt * 60;
+
+    // Aerodynamic self-righting torque from fins
+    const stability = (0.016 + (s.controlScore / 100) * 0.03) * airDensity;
+    r.angVel -= r.angle * stability * dt * 60;
+    r.angVel *= 0.88;
+    r.angle += r.angVel * dt * 60;
+    r.angle = Math.max(-0.82, Math.min(0.82, r.angle));
+
+    // Fuel & Engine Thrust
+    const hasFuel = r.fuel > 0;
+    r.isBoosting = hasFuel && GAME.input.boost && r.boostEnergy > 4;
+
+    let thrustAccel = 0;
+    if (hasFuel) {
+        document.getElementById('glideBadge').style.display = 'none';
+        const burnMult = r.isBoosting ? 1.75 : 1.0;
+        r.fuel = Math.max(0, r.fuel - s.engine.burnRate * burnMult * dt);
+
+        if (r.isBoosting) {
+            r.boostEnergy = Math.max(0, r.boostEnergy - 40 * dt);
+            GAME.shake = Math.max(GAME.shake, 3.5);
+        } else {
+            r.boostEnergy = Math.min(100, r.boostEnergy + 18 * dt);
+        }
+
+        const boostMult = r.isBoosting ? 1.65 : 1.0;
+        // Balanced Thrust-to-Weight formula: Starter Spark-1 yields ~25.5 upward accel vs 13.8 gravity
+        thrustAccel = ((s.engine.thrust * 23.5 * boostMult) / s.totalMass);
+        sfx.setThruster(1, r.isBoosting);
+
+        // Emit exhaust particles
+        spawnExhaust(r, r.isBoosting);
+    } else {
+        sfx.setThruster(0);
+        if (r.vy > 0) {
+            document.getElementById('glideBadge').style.display = 'inline-block';
+        }
+    }
+
+    // Wind force (stronger in lower atmosphere & bad weather)
+    const windGust = Math.sin(GAME.time * 1.3 + r.y * 0.002) * w.windBase * airDensity * 0.18;
+
+    // Aerodynamic Drag (reduced by high Aero stat & high altitude)
+    const aeroReduction = 1 - (s.aeroScore / 130);
+    const dragCoeff = 0.0014 * aeroReduction * airDensity * w.dragMult;
+    const speedSq = r.vx * r.vx + r.vy * r.vy;
+    const dragMag = speedSq * dragCoeff;
+
+    // Gravity
+    const gravity = 13.8;
+
+    // Apply accelerations
+    const ax = Math.sin(r.angle) * thrustAccel + windGust - (r.vx * dragMag * 0.05);
+    const ay = Math.cos(r.angle) * thrustAccel - gravity - (r.vy > 0 ? dragMag : -dragMag * 0.35);
+
+    r.vx += ax * dt;
+    r.vy += ay * dt;
+
+    // Horizontal boundary wrap / soft bumper
+    const maxOffset = Math.min(width * 0.44, 290);
+    r.x += r.vx * dt * 18;
+    if (r.x < -maxOffset) { r.x = -maxOffset; r.vx *= -0.4; }
+    if (r.x > maxOffset) { r.x = maxOffset; r.vx *= -0.4; }
+
+    r.y += r.vy * dt * 4.5;
+    if (r.y < 0) r.y = 0;
+
+    if (r.y > r.maxAlt) r.maxAlt = r.y;
+    if (r.vy > r.maxSpeed) r.maxSpeed = r.vy;
+
+    GAME.cameraY = r.y;
+    spawnWorldAhead(r.y);
+
+    // Update & Collide World Objects
+    const rocketScreenX = width * 0.5 + r.x;
+    const rocketScreenY = height * 0.62;
+
+    for (let i = GAME.worldObjects.length - 1; i >= 0; i--) {
+        const obj = GAME.worldObjects[i];
+        if (obj.vx) {
+            obj.x += obj.vx;
+            if (Math.abs(obj.x) > maxOffset) obj.vx *= -1;
+        }
+        if (obj.rot !== undefined) obj.rot += 0.03;
+        if (obj.pulse !== undefined) obj.pulse += 0.08;
+
+        const objScreenX = width * 0.5 + obj.x;
+        const objScreenY = rocketScreenY - (obj.alt - r.y) * 4.2;
+
+        const dx = rocketScreenX - objScreenX;
+        const dy = rocketScreenY - objScreenY;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < obj.radius + 22) {
+            if (obj.type === 'ring' && !obj.collected) {
+                obj.collected = true;
+                r.vy += 26;
+                r.boostEnergy = Math.min(100, r.boostEnergy + 35);
+                r.bonusCoins += 15;
+                sfx.playRing();
+                spawnBurst(objScreenX, objScreenY, '#38bdf8', 18);
+                showToast('THERMAL RING! +15 ✦');
+            } else if (obj.type === 'fuel' && !obj.collected) {
+                obj.collected = true;
+                r.fuel = Math.min(r.maxFuel, r.fuel + r.maxFuel * 0.28);
+                r.bonusCoins += 10;
+                sfx.playRing();
+                spawnBurst(objScreenX, objScreenY, '#fbbf24', 14);
+                showToast('FUEL CELL +28%');
+            } else if ((obj.type === 'storm' || obj.type === 'drone' || obj.type === 'meteor') && !obj.hit) {
+                obj.hit = true;
+                const dmg = obj.type === 'storm' ? 18 : 32;
+                r.hull = Math.max(0, r.hull - dmg);
+                r.vy *= 0.72;
+                GAME.shake = 14;
+                sfx.playHit();
+                spawnBurst(rocketScreenX, rocketScreenY, '#ef4444', 22);
+                if (r.hull <= 0) {
+                    endFlight('HULL');
+                    return;
+                }
+            }
+        }
+
+        if (obj.alt < r.y - 300) {
+            GAME.worldObjects.splice(i, 1);
+        }
+    }
+
+    updateParticles(dt);
+    updateFlightHud();
+
+    // Robust Apogee / Fall Condition (No minimum altitude trap)
+    if (!hasFuel && r.vy <= -2.0 && r.flightTime > 0.6) {
+        endFlight('APOGEE');
+    } else if (r.y <= 0 && r.flightTime > 1.0 && r.vy <= 0) {
+        endFlight('APOGEE');
+    }
+}
+
+function spawnExhaust(r, isBoost) {
+    const rocketScreenX = width * 0.5 + r.x;
+    const rocketScreenY = height * 0.62;
+    const nozzleOffset = 58;
+    const ex = rocketScreenX - Math.sin(r.angle) * nozzleOffset;
+    const ey = rocketScreenY + Math.cos(r.angle) * nozzleOffset;
+
+    const count = isBoost ? 3 : 2;
+    for (let i = 0; i < count; i++) {
+        GAME.particles.push({
+            x: ex + (Math.random() - 0.5) * 10,
+            y: ey + (Math.random() - 0.5) * 6,
+            vx: -Math.sin(r.angle) * (4 + Math.random() * 5) + (Math.random() - 0.5) * 3,
+            vy: Math.cos(r.angle) * (5 + Math.random() * 6),
+            life: 1,
+            decay: isBoost ? 0.045 : 0.06,
+            size: isBoost ? (7 + Math.random() * 6) : (4 + Math.random() * 5),
+            color: i === 0 ? '#ffffff' : (isBoost ? '#38bdf8' : r.stats.engine.flame)
+        });
+    }
+}
+
+function spawnBurst(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        const a = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+        const spd = 2 + Math.random() * 6;
+        GAME.particles.push({
+            x, y,
+            vx: Math.cos(a) * spd,
+            vy: Math.sin(a) * spd,
+            life: 1,
+            decay: 0.035,
+            size: 4 + Math.random() * 4,
+            color
+        });
+    }
+}
+
+function updateParticles(dt) {
+    for (let i = GAME.particles.length - 1; i >= 0; i--) {
+        const p = GAME.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        p.size *= 0.96;
+        if (p.life <= 0) GAME.particles.splice(i, 1);
+    }
+}
+
+function updateFlightHud() {
+    const r = GAME.rocket;
+    document.getElementById('altVal').textContent = `${Math.floor(r.y).toLocaleString()} m`;
+    document.getElementById('speedVal').textContent = `${Math.max(0, Math.round(r.vy * 32))} km/h`;
+
+    const fPct = Math.round((r.fuel / r.maxFuel) * 100);
+    document.getElementById('fuelPct').textContent = `${fPct}%`;
+    document.getElementById('fuelBar').style.width = `${fPct}%`;
+
+    const hPct = Math.round((r.hull / r.maxHull) * 100);
+    document.getElementById('hullPct').textContent = `${hPct}%`;
+    document.getElementById('hullBar').style.width = `${hPct}%`;
+
+    const boostBtn = document.getElementById('btnBoost');
+    if (r.boostEnergy < 10 || r.fuel <= 0) boostBtn.classList.add('depleted');
+    else boostBtn.classList.remove('depleted');
+}
+
+// ==========================================
+// 10. PSEUDO-3D RENDERER (SKY, PAD, ROCKET)
+// ==========================================
+function lerpColor(hex1, hex2, t) {
+    const c1 = parseInt(hex1.slice(1), 16);
+    const c2 = parseInt(hex2.slice(1), 16);
+    const r1 = (c1 >> 16) & 255, g1 = (c1 >> 8) & 255, b1 = c1 & 255;
+    const r2 = (c2 >> 16) & 255, g2 = (c2 >> 8) & 255, b2 = c2 & 255;
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+    return `rgb(${r},${g},${b})`;
+}
+
+function renderSkyAndAtmosphere(alt) {
+    // Smooth color transition from vibrant day sky -> stratosphere -> deep space
+    let topCol, botCol;
+    if (alt < 2500) {
+        const t = alt / 2500;
+        topCol = lerpColor('#0284c7', '#1e1b4b', t);
+        botCol = lerpColor('#7dd3fc', '#3b82f6', t);
+    } else if (alt < 7500) {
+        const t = (alt - 2500) / 5000;
+        topCol = lerpColor('#1e1b4b', '#050814', t);
+        botCol = lerpColor('#3b82f6', '#1e1b4b', t);
+    } else {
+        topCol = '#03050c';
+        botCol = '#0b1026';
+    }
+
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+    skyGrad.addColorStop(0, topCol);
+    skyGrad.addColorStop(1, botCol);
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Stars fade in as altitude climbs
+    const starAlpha = Math.min(1, Math.max(0, (alt - 1200) / 3500));
+    if (starAlpha > 0.02) {
+        GAME.stars.forEach(st => {
+            const twinkle = 0.65 + 0.35 * Math.sin(GAME.time * 2.5 + st.twinkle);
+            ctx.fillStyle = `rgba(255,255,255,${starAlpha * twinkle})`;
+            ctx.beginPath();
+            ctx.arc(st.x * width, ((st.y * height + alt * 0.15) % height), st.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    // Horizon Planet Curvature in high orbit
+    if (alt > 5000) {
+        const curveAlpha = Math.min(0.45, (alt - 5000) / 8000);
+        ctx.strokeStyle = `rgba(56, 189, 248, ${curveAlpha})`;
+        ctx.lineWidth = 18;
+        ctx.beginPath();
+        ctx.arc(width * 0.5, height + 820, 960, Math.PI * 1.15, Math.PI * 1.85);
+        ctx.stroke();
+    }
+
+    // Weather Tint & Precipitation in Troposphere
+    const w = WEATHER_TYPES[GAME.weatherIdx];
+    const weatherFade = Math.max(0, 1 - alt / 3200);
+    if (weatherFade > 0.05) {
+        if (w.visColor !== 'rgba(255,255,255,0)') {
+            ctx.fillStyle = w.visColor;
+            ctx.fillRect(0, 0, width, height);
+        }
+        GAME.weatherParticles.forEach(p => {
+            ctx.globalAlpha = weatherFade * (w.id === 'clear' ? 0.25 : 0.7);
+            if (w.id === 'rain') {
+                ctx.strokeStyle = '#bae6fd';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + w.windBase * 0.35, p.y + 14);
+                ctx.stroke();
+            } else if (w.id === 'snow') {
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (w.id === 'breezy') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + 28, p.y + 2);
+                ctx.stroke();
+            }
+        });
+        ctx.globalAlpha = 1;
+    }
+}
+
+function renderLaunchPad(baseY) {
+    if (baseY > height + 250) return;
+
+    // Distant Mountains Parallax
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.moveTo(0, baseY);
+    ctx.lineTo(width * 0.18, baseY - 95);
+    ctx.lineTo(width * 0.38, baseY - 35);
+    ctx.lineTo(width * 0.65, baseY - 120);
+    ctx.lineTo(width * 0.88, baseY - 50);
+    ctx.lineTo(width, baseY - 80);
+    ctx.lineTo(width, baseY + 300);
+    ctx.lineTo(0, baseY + 300);
+    ctx.closePath();
+    ctx.fill();
+
+    // Launch Ground Deck
+    const groundGrad = ctx.createLinearGradient(0, baseY, 0, baseY + 260);
+    groundGrad.addColorStop(0, '#0f172a');
+    groundGrad.addColorStop(1, '#020617');
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, baseY, width, 300);
+
+    // Concrete Launch Platform (3D Perspective)
+    const cx = width * 0.5;
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.moveTo(cx - 95, baseY);
+    ctx.lineTo(cx + 95, baseY);
+    ctx.lineTo(cx + 125, baseY + 28);
+    ctx.lineTo(cx - 125, baseY + 28);
+    ctx.closePath();
+    ctx.fill();
+
+    // Hazard Stripes on Pad
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(cx - 82, baseY + 4, 164, 5);
+
+    // Gantry Service Tower
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(cx - 76, baseY - 135, 18, 135);
+    ctx.beginPath();
+    for (let gy = baseY - 135; gy < baseY; gy += 22) {
+        ctx.moveTo(cx - 76, gy);
+        ctx.lineTo(cx - 58, gy + 22);
+    }
+    ctx.stroke();
+
+    // Swing Arm
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(cx - 58, baseY - 105, 36, 6);
+}
+
+function renderRocket3D(x, y, angle, stats, isBoosting) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    // Subtle Engine Glow Aura during flight
+    if (GAME.mode === 'FLIGHT' && GAME.rocket.fuel > 0) {
+        const glow = ctx.createRadialGradient(0, 56, 4, 0, 62, isBoosting ? 64 : 42);
+        glow.addColorStop(0, isBoosting ? 'rgba(56, 189, 248, 0.85)' : 'rgba(255, 140, 50, 0.7)');
+        glow.addColorStop(1, 'rgba(255, 94, 58, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 62, isBoosting ? 64 : 42, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 1. ENGINE NOZZLE(S)
+    const eng = stats.engine;
+    ctx.fillStyle = '#334155';
+    if (eng.nozzles === 1) {
+        ctx.beginPath();
+        ctx.moveTo(-11, 36);
+        ctx.lineTo(11, 36);
+        ctx.lineTo(16, 52);
+        ctx.lineTo(-16, 52);
+        ctx.closePath();
+        ctx.fill();
+    } else if (eng.nozzles === 2) {
+        [-11, 11].forEach(nx => {
+            ctx.beginPath();
+            ctx.moveTo(nx - 6, 36);
+            ctx.lineTo(nx + 6, 36);
+            ctx.lineTo(nx + 9, 51);
+            ctx.lineTo(nx - 9, 51);
+            ctx.closePath();
+            ctx.fill();
+        });
+    } else {
+        [-13, 0, 13].forEach(nx => {
+            ctx.beginPath();
+            ctx.moveTo(nx - 5, 36);
+            ctx.lineTo(nx + 5, 36);
+            ctx.lineTo(nx + 7, 50);
+            ctx.lineTo(nx - 7, 50);
+            ctx.closePath();
+            ctx.fill();
+        });
+    }
+
+    // 2. FINS (Pseudo-3D bevels)
+    const fins = stats.fins;
+    const drawFinPair = (yTop, yBot, span, tipOffset) => {
+        // Left Fin
+        const lGrad = ctx.createLinearGradient(-20 - span, yTop, -18, yBot);
+        lGrad.addColorStop(0, fins.color1);
+        lGrad.addColorStop(1, fins.color2);
+        ctx.fillStyle = lGrad;
+        ctx.beginPath();
+        ctx.moveTo(-18, yTop);
+        ctx.lineTo(-18 - span, yBot + tipOffset);
+        ctx.lineTo(-18, yBot);
+        ctx.closePath();
+        ctx.fill();
+
+        // Right Fin
+        const rGrad = ctx.createLinearGradient(18, yTop, 20 + span, yBot);
+        rGrad.addColorStop(0, fins.color1);
+        rGrad.addColorStop(1, fins.color2);
+        ctx.fillStyle = rGrad;
+        ctx.beginPath();
+        ctx.moveTo(18, yTop);
+        ctx.lineTo(18 + span, yBot + tipOffset);
+        ctx.lineTo(18, yBot);
+        ctx.closePath();
+        ctx.fill();
+    };
+
+    if (fins.style === 'stub') drawFinPair(12, 36, 16, 4);
+    else if (fins.style === 'delta') drawFinPair(2, 38, 24, 8);
+    else if (fins.style === 'canard') {
+        drawFinPair(4, 38, 22, 6);
+        drawFinPair(-24, -10, 11, 2); // Forward canards
+    } else {
+        drawFinPair(-4, 40, 28, 12);
+    }
+
+    // 3. MAIN HULL (Cylindrical 3D Shading)
+    const hull = stats.hull;
+    const hullGrad = ctx.createLinearGradient(-20, 0, 20, 0);
+    hullGrad.addColorStop(0, hull.color2);
+    hullGrad.addColorStop(0.32, hull.color1);
+    hullGrad.addColorStop(0.75, hull.color1);
+    hullGrad.addColorStop(1, hull.color2);
+
+    ctx.fillStyle = hullGrad;
+    ctx.beginPath();
+    ctx.roundRect(-19, -28, 38, 66, 4);
+    ctx.fill();
+
+    // Accent Band / Racing Stripe
+    ctx.fillStyle = hull.stripe;
+    ctx.fillRect(-19, 18, 38, 7);
+
+    // 3D Porthole Window
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(0, -6, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(0, -6, 6.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-2.2, -8.2, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. NOSE CONE (3D Shaded)
+    const nose = stats.nose;
+    const noseGrad = ctx.createLinearGradient(-19, 0, 19, 0);
+    noseGrad.addColorStop(0, nose.color2);
+    noseGrad.addColorStop(0.35, nose.color1);
+    noseGrad.addColorStop(1, nose.color2);
+    ctx.fillStyle = noseGrad;
+
+    ctx.beginPath();
+    if (nose.shape === 'blunt') {
+        ctx.moveTo(-19, -28);
+        ctx.quadraticCurveTo(-19, -54, 0, -54);
+        ctx.quadraticCurveTo(19, -54, 19, -28);
+    } else if (nose.shape === 'cone') {
+        ctx.moveTo(-19, -28);
+        ctx.quadraticCurveTo(-16, -52, 0, -68);
+        ctx.quadraticCurveTo(16, -52, 19, -28);
+    } else if (nose.shape === 'needle') {
+        ctx.moveTo(-19, -28);
+        ctx.lineTo(-4, -76);
+        ctx.lineTo(0, -86);
+        ctx.lineTo(4, -76);
+        ctx.lineTo(19, -28);
+    } else {
+        // Valkyrie sculpted tip
+        ctx.moveTo(-19, -28);
+        ctx.bezierCurveTo(-22, -48, -6, -64, 0, -82);
+        ctx.bezierCurveTo(6, -64, 22, -48, 19, -28);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function renderWorldObjects(r) {
+    const rocketScreenY = height * 0.62;
+
+    GAME.worldObjects.forEach(obj => {
+        if (obj.collected) return;
+        const sx = width * 0.5 + obj.x;
+        const sy = rocketScreenY - (obj.alt - r.y) * 4.2;
+        if (sy < -80 || sy > height + 80) return;
+
+        ctx.save();
+        ctx.translate(sx, sy);
+
+        if (obj.type === 'ring') {
+            const scaleY = 0.42 + Math.sin(obj.pulse) * 0.06;
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 5;
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, obj.radius, obj.radius * scaleY, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, obj.radius * 0.78, obj.radius * scaleY * 0.78, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        } else if (obj.type === 'fuel') {
+            const bob = Math.sin(obj.pulse) * 4;
+            ctx.translate(0, bob);
+            ctx.fillStyle = '#f59e0b';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.roundRect(-13, -17, 26, 34, 7);
+            ctx.fill();
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(-7, -8, 14, 16);
+        } else if (obj.type === 'storm') {
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.92)';
+            ctx.beginPath();
+            ctx.arc(-14, 4, 20, 0, Math.PI * 2);
+            ctx.arc(14, 4, 20, 0, Math.PI * 2);
+            ctx.arc(0, -8, 24, 0, Math.PI * 2);
+            ctx.fill();
+            // Lightning spark
+            if (Math.sin(GAME.time * 18 + obj.alt) > 0.65) {
+                ctx.strokeStyle = '#fde047';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(-4, 8);
+                ctx.lineTo(4, 18);
+                ctx.lineTo(-2, 28);
+                ctx.stroke();
+            }
+        } else if (obj.type === 'drone') {
+            // Satellite / Weather Drone
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(-32, -6, 18, 12);
+            ctx.fillRect(14, -6, 18, 12);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (obj.type === 'meteor') {
+            ctx.rotate(obj.rot);
+            const mGrad = ctx.createRadialGradient(-8, -8, 4, 0, 0, obj.radius);
+            mGrad.addColorStop(0, '#fb923c');
+            mGrad.addColorStop(0.5, '#7c2d12');
+            mGrad.addColorStop(1, '#27272a');
+            ctx.fillStyle = mGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    });
+}
+
+function renderFrame() {
+    ctx.save();
+    if (GAME.shake > 0) {
+        const sx = (Math.random() - 0.5) * GAME.shake;
+        const sy = (Math.random() - 0.5) * GAME.shake;
+        ctx.translate(sx, sy);
+    }
+
+    const alt = GAME.mode === 'FLIGHT' ? GAME.rocket.y : 0;
+    renderSkyAndAtmosphere(alt);
+
+    if (GAME.mode === 'HANGAR') {
+        const padY = height * 0.53;
+        renderLaunchPad(padY);
+        const stats = computeRocketStats();
+        const hoverBob = Math.sin(GAME.time * 2.2) * 2;
+        renderRocket3D(width * 0.5, padY - 52 + hoverBob, 0, stats, false);
+    } else {
+        const r = GAME.rocket;
+        const rocketScreenY = height * 0.62;
+        const padScreenY = rocketScreenY + 52 + r.y * 4.2;
+        renderLaunchPad(padScreenY);
+        renderWorldObjects(r);
+
+        // Render particles behind rocket
+        GAME.particles.forEach(p => {
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+
+        renderRocket3D(width * 0.5 + r.x, rocketScreenY, r.angle, r.stats, r.isBoosting);
+    }
+
+    ctx.restore();
+}
+
+// ==========================================
+// 11. SAVE SLOTS, MUTE & CACHE-BUST UPDATE
+// ==========================================
+function updateMuteIcon() {
+    document.getElementById('iconSoundOn').style.display = sfx.muted ? 'none' : 'block';
+    document.getElementById('iconSoundOff').style.display = sfx.muted ? 'block' : 'none';
+}
+
+document.getElementById('btnMute').addEventListener('click', () => {
+    sfx.init();
+    sfx.muted = !sfx.muted;
+    if (sfx.muted) sfx.setThruster(0);
+    else sfx.playClick(580);
+    updateMuteIcon();
+    persistSaveData();
+});
+
+function renderSaveSlotsModal() {
+    const container = document.getElementById('slotsContainer');
+    container.innerHTML = '';
+    document.getElementById('versionLabel').textContent = `STRATOX v${APP_VERSION}`;
+
+    saveState.players.forEach((player) => {
+        const isActive = player.id === saveState.activePlayerId;
+        const rankInfo = getRankForAltitude(player.bestAltitude);
+        const div = document.createElement('div');
+        div.className = `slot-card ${isActive ? 'active-slot' : ''}`;
+        div.innerHTML = `
+            <div style="min-width:0; flex:1; padding-right:8px;">
+                <div style="font-weight:700; font-size:14px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    ${player.name} ${isActive ? '<span style="color:var(--cyan); font-size:11px;">(ACTIVE)</span>' : ''}
+                </div>
+                <div style="font-size:11px; color:var(--gold); font-weight:700; margin-top:2px;">
+                    ${rankInfo.title}
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+                    Best: <strong style="color:#fff;">${Math.floor(player.bestAltitude).toLocaleString()} m</strong> • <strong style="color:var(--gold);">${player.coins} ✦</strong>
+                </div>
+            </div>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+                ${!isActive ? `<button class="btn-secondary" data-load="${player.id}">Select</button>` : ''}
+                ${saveState.players.length > 1 ? `<button class="btn-secondary" data-del="${player.id}" style="color:#f87171;">✕</button>` : ''}
+            </div>
+        `;
+
+        div.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sfx.init();
+                sfx.playClick(500);
+                if (btn.dataset.load) {
+                    saveState.activePlayerId = btn.dataset.load;
+                    persistSaveData();
+                    updateTopHud();
+                    renderPartsCarousel();
+                    updateStatsBars();
+                    renderSaveSlotsModal();
+                    showToast(`Switched to ${currentProfile().name}`);
+                } else if (btn.dataset.del) {
+                    const delId = btn.dataset.del;
+                    saveState.players = saveState.players.filter(p => p.id !== delId);
+                    if (saveState.activePlayerId === delId) {
+                        saveState.activePlayerId = saveState.players[0].id;
+                    }
+                    persistSaveData();
+                    updateTopHud();
+                    renderPartsCarousel();
+                    updateStatsBars();
+                    renderSaveSlotsModal();
+                    showToast('Commander profile removed');
+                }
+            });
+        });
+
+        container.appendChild(div);
+    });
+}
+
+function handleCreateNewPlayer() {
+    const input = document.getElementById('newPlayerNameInput');
+    const rawName = input.value.trim();
+    if (!rawName) {
+        sfx.playHit();
+        showToast('Enter a name first!');
+        input.focus();
+        return;
+    }
+    sfx.init();
+    sfx.playBuy();
+    const newPlr = createDefaultPlayer(rawName);
+    saveState.players.unshift(newPlr);
+    saveState.activePlayerId = newPlr.id;
+    input.value = '';
+    persistSaveData();
+    updateTopHud();
+    renderPartsCarousel();
+    updateStatsBars();
+    renderSaveSlotsModal();
+    showToast(`Welcome, ${newPlr.name}!`);
+}
+
+document.getElementById('btnCreatePlayer').addEventListener('click', handleCreateNewPlayer);
+document.getElementById('newPlayerNameInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleCreateNewPlayer();
+});
+
+function renderLeaderboardModal() {
+    const container = document.getElementById('leaderboardContainer');
+    container.innerHTML = '';
+
+    if (saveState.highScores.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:24px 12px; color:var(--text-muted); font-size:13px;">No flights recorded yet. Launch a rocket to claim #1!</div>`;
+        return;
+    }
+
+    saveState.highScores.slice(0, 10).forEach((entry, idx) => {
+        const pos = idx + 1;
+        const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `#${pos}`;
+        const topClass = pos <= 3 ? `top-${pos}` : '';
+        const row = document.createElement('div');
+        row.className = `lb-row ${topClass}`;
+        row.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                <span class="font-display" style="font-size:15px; font-weight:700; width:28px; text-align:center;">${medal}</span>
+                <div style="min-width:0;">
+                    <div style="font-weight:700; font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        ${entry.playerName} <span style="font-size:12px;">${entry.weatherIcon || ''}</span>
+                    </div>
+                    <div style="font-size:10px; color:var(--gold); font-weight:700;">${entry.rankTitle}</div>
+                </div>
+            </div>
+            <div class="font-display" style="font-size:15px; font-weight:700; color:var(--cyan); flex-shrink:0;">
+                ${entry.altitude.toLocaleString()} m
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+document.getElementById('btnLeaderboard').addEventListener('click', () => {
+    sfx.init();
+    sfx.playClick(560);
+    renderLeaderboardModal();
+    document.getElementById('leaderboardModal').classList.add('open');
+});
+
+document.getElementById('btnCloseLeaderboard').addEventListener('click', () => {
+    sfx.playClick(420);
+    document.getElementById('leaderboardModal').classList.remove('open');
+});
+
+document.getElementById('btnSaves').addEventListener('click', () => {
+    sfx.init();
+    sfx.playClick(500);
+    renderSaveSlotsModal();
+    document.getElementById('savesModal').classList.add('open');
+});
+
+document.getElementById('btnCloseSaves').addEventListener('click', () => {
+    sfx.playClick(420);
+    document.getElementById('savesModal').classList.remove('open');
+});
+
+// Cache-Busting Update Check without losing Home Screen Bookmark
+async function checkForUpdates(manual = false) {
+    if (manual) {
+        sfx.init();
+        sfx.playClick(600);
+        showToast('Checking for updates...');
+    }
+    try {
+        const url = `${window.location.pathname}?v=${Date.now()}`;
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Offline or local file');
+        const htmlText = await res.text();
+        const match = htmlText.match(/const APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        if (match && match[1] && match[1] !== APP_VERSION) {
+            showToast(`Updating to v${match[1]}...`);
+            persistSaveData();
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            setTimeout(() => {
+                window.location.replace(`${window.location.pathname}?upd=${Date.now()}`);
+            }, 900);
+        } else if (manual) {
+            showToast(`Up to date (v${APP_VERSION})`);
+        }
+    } catch (err) {
+        if (manual) {
+            showToast(`Running v${APP_VERSION} (Standalone)`);
+        }
+    }
+}
+
+document.getElementById('btnUpdate').addEventListener('click', () => checkForUpdates(true));
+
+// ==========================================
+// 12. MAIN ANIMATION LOOP & BOOTSTRAP
+// ==========================================
+let lastTimestamp = 0;
+
+function gameLoop(timestamp) {
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+    lastTimestamp = timestamp;
+
+    updateSimulation(dt);
+    renderFrame();
+    requestAnimationFrame(gameLoop);
+}
+
+window.onload = function () {
+    loadSaveData();
+    GAME.weatherIdx = pickRandomWeatherIndex(-1);
+    initWeatherParticles();
+    updateTopHud();
+    updateStatsBars();
+    renderPartsCarousel();
+    checkForUpdates(false);
+    requestAnimationFrame(gameLoop);
+};
+</script>
+</body>
+</html>
